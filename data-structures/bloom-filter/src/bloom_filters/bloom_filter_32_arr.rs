@@ -1,5 +1,6 @@
 use crate::bloom_filter::BloomFilter;
 
+#[derive(Default, Debug)]
 pub struct BloomFilter32 {
     bits: [bool; 32],
 }
