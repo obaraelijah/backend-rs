@@ -44,3 +44,30 @@ impl BloomFilter for BloomFilterProd {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_init_zeros() {
+        let bl = BloomFilterProd::new(10, 0.01);
+        bl.bits.iter().for_each(|bit| assert!(!bit));
+    }
+
+    #[test]
+    fn test_hash_order_sensitive() {
+        let bl = BloomFilterProd::new(10, 0.01);
+        let hash1 = bl.hash("mango", 0);
+        let hash2 = bl.hash("mango", 1);
+        assert_ne!(hash1, hash2);
+    }
+
+    #[test]
+    fn test_hash_palindrome_sensitive() {
+        let bl = BloomFilterProd::new(10, 0.01);
+        let hash1 = bl.hash("mango", 0);
+        let hash2 = bl.hash("ognam", 0);
+        assert_ne!(hash1, hash2);
+    }
+}
