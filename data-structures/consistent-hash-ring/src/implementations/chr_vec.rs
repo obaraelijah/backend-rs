@@ -17,7 +17,7 @@ where
 /// Consistent Hash Ring implementation using vector
 struct CHRVec<ConsumerInfo> 
 where 
-    ConsumerInfo: CLone,
+    ConsumerInfo: Clone,
 {
     consumers: Vec<CHRVecNode<ConsumerInfo>>,
     virtual_nodes: usize // stores the number of virtual nodes used for each consumer and vn are used for load balancing
@@ -76,7 +76,7 @@ where
 
 impl<ConsumerInfo> ConsitentHashRing for CHRVec<ConsumerInfo>
 where
-    ConsumerInfo: CLone,
+    ConsumerInfo: Clone,
 {
     type ConsumerInfo = ConsumerInfo;
 
@@ -126,5 +126,112 @@ where
         };
 
         Some(&self.consumers[index].data)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Clone, PartialEq, Debug)]
+    enum IP {
+        IpV4((u8, u8, u8, u8)),
+        IpV6(String),
+    }
+
+    #[derive(Clone, PartialEq, Debug)]
+    struct ServerInfo {
+        ip: IP,
+        port: u16,
+    }
+
+    #[test]
+    fn test_proper_init() {
+        let chr = CHRVec::<ServerInfo>::new(3);
+
+        assert_eq!(chr.virtual_nodes, 3);
+    }
+
+    #[test]
+    fn test_virtual_nodes_insertion() {
+        let mut chr = CHRVec::<ServerInfo>::new(3);
+
+        chr.add_consumer(
+            "local",
+            ServerInfo {
+                ip: IP::IpV4((127, 0, 0, 1)),
+                port: 8080,
+            },
+        );
+        chr.add_consumer(
+            "remote",
+            ServerInfo {
+                ip: IP::IpV4((1, 1, 1, 1)),
+                port: 443,
+            },
+        );
+        chr.remove_consumer("local");
+
+        assert_eq!(chr.consumers.len(), 3);
+        assert!(chr
+            .consumers
+            .iter()
+            .all(|consumer| !consumer.key.starts_with("local")),);
+    }
+
+    #[test]
+    fn test_get_consumer() {
+        let mut chr = CHRVec::<ServerInfo>::new(3);
+
+        let consumer = chr.get_consumer("test");
+
+        assert!(consumer.is_none());
+
+        chr.add_consumer(
+            "local",
+            ServerInfo {
+                ip: IP::IpV4((127, 0, 0, 1)),
+                port: 8080,
+            },
+        );
+        chr.add_consumer(
+            "remote",
+            ServerInfo {
+                ip: IP::IpV4((1, 1, 1, 1)),
+                port: 443,
+            },
+        );
+
+        let consumer = chr.get_consumer("test");
+        assert!(consumer.is_some());
+    }
+
+    #[test]
+    fn test_sorted_after_add() {
+        let mut chr = CHRVec::<ServerInfo>::new(12); // abnormally large to test easily
+
+        chr.add_consumer(
+            "local",
+            ServerInfo {
+                ip: IP::IpV4((127, 0, 0, 1)),
+                port: 8080,
+            },
+        );
+        chr.add_consumer(
+            "remote",
+            ServerInfo {
+                ip: IP::IpV4((1, 1, 1, 1)),
+                port: 443,
+            },
+        );
+
+        let hashes = chr
+            .consumers
+            .iter()
+            .map(|node| node.hash)
+            .collect::<Vec<_>>();
+
+        // check if sorted
+        assert!(hashes.windows(2).all(|w| w[0] <= w[1]));
     }
 }
