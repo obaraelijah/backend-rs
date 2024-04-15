@@ -73,3 +73,58 @@ where
         }
     }
 }
+
+impl<ConsumerInfo> ConsitentHashRing for CHRVec<ConsumerInfo>
+where
+    ConsumerInfo: CLone,
+{
+    type ConsumerInfo = ConsumerInfo;
+
+    fn add_consumer(&mut self, key: &str, data: Self::ConsumerInfo) {
+        let nodes_to_insert_iter = (0..self.virtual_nodes).map(|i| {
+            let key = format!("{}_{}", key, i);
+            let hash = Self::hash(&key);
+            CHRVecNode {
+                key,
+                hash,
+                data: data.clone(),
+            }
+        });
+
+        // self.consumers.reserve(self.virtual_nodes);
+        // self.consumers.extend(nodes_to_insert_iter);
+        // self.consumers.sort_by_key(|consumer| consumer.hash);
+        self.extend_consumers(nodes_to_insert_iter);
+    }
+
+    fn remove_consumer(&mut self, key: &str) {
+        self.consumers
+            .retain(|consumer| !consumer.key.starts_with(key));
+    }
+
+    
+    fn get_consumer(&self, key: &str) -> Option<&Self::ConsumerInfo> {
+        let hash = Self::hash(key);
+
+        if self.consumers.is_empty() {
+            return None;
+        }
+
+        let index_result = self
+            .consumers
+            .binary_search_by_key(&hash, |consumer| consumer.hash);
+
+        let index = match index_result {
+            Ok(index) => index,
+            Err(index) => {
+                if index >= self.consumers.len() {
+                    0
+                } else {
+                    index
+                }
+            }
+        };
+
+        Some(&self.consumers[index].data)
+    }
+}
