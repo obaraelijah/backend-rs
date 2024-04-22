@@ -62,6 +62,39 @@ impl Node {
         // x.n = x.n + 1
         self.numbers_of_keys += 1;
     }
+
+    pub fn insert_non_full(&mut self, key: u32) {
+        if self.is_leaf {
+            match self.keys.binary_search(&key) {
+                Ok(_) => (),
+                Err(pos) => {
+                    self.keys.insert(pos, key);
+                }
+            }
+
+            self.numbers_of_keys += 1;
+        } else {
+            let mut index = self.numbers_of_keys - 1;
+
+            while index > 0 && key < self.keys[index] {
+                index -= 1;
+            }
+
+            if key > self.keys[index] {
+                index += 1;
+            }
+
+            if self.childrens[index].numbers_of_keys == MAX_DEGREE {
+                self.split_child(index);
+
+                if key > self.keys[index] {
+                    index += 1
+                }
+            }
+
+            self.childrens[index].insert_non_full(key)
+        }
+    }
 }
 
 impl std::fmt::Debug for Node {
