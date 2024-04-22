@@ -95,6 +95,10 @@ impl Node {
             self.childrens[index].insert_non_full(key)
         }
     }
+
+    pub fn merge_childs() {
+        unimplimented!();
+    }
 }
 
 impl std::fmt::Debug for Node {
