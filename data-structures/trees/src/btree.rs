@@ -1,20 +1,66 @@
 use std::collections::VecDeque;
 
 struct Node {
-    number_of_keys: usize,
+    numbers_of_keys: usize,
     keys: Vec<u32>, // At least t - 1 keys, at most 2t - 1 keys
     children: Vec<Box<Node>>, // At least t children, at most 2t children
     is_leaf: bool,
 } 
 
+const MINIMUM_DEGREE: usize = 2; // t
+const MAX_DEGREE: usize = 2 * MINIMUM_DEGREE - 1;
+
 impl Node {
     pub fn new(is_leaf: bool) -> Self {
         Node {
-            number_of_keys: 0,
+            numbers_of_keys: 0,
             keys: vec![],
             children: Vec::new(),
             is_leaf,
         }
+    }
+
+    pub fn search(&self, key: &u32) -> Option<&u32> {
+       match self.keys.iter().position(|&k| k >= *key) {
+            Some(i) if self.keys[i] == *key => Some(&self.keys[i]),
+            Some(i) if !self.is_leaf => self.children[i].search(key),
+            _ => None,
+       }
+    }
+
+    pub fn split_child(&mut self, index: usize) {
+        let child = match self.children.remove(index) {
+            Some(c) => c,
+            None => return,
+        }
+
+        let mut new_node= Self::new(child.is_leaf);
+        new_node.numbers_of_keys = new_node_number_of_keys;
+
+        // Move keys[MINIMUM_DEGREE..] to new node
+        for _ in 0..new_node_number_of_keys {
+            let key = child.keys.remove(MINIMUM_DEGREE);
+            new_node.keys.push(key);
+        }
+
+        // Move childrens[MINIMUM_DEGREE] to new node if not leaf node
+        if !child.is_leaf {
+            for _ in 0..MINIMUM_DEGREE {
+                let node = child.children.remove(MINIMUM_DEGREE);
+                new_node.children.push(node);
+            }
+        }
+
+        // x.keys(i) = y.key(t)
+        if let Some(key) = child.keys.pop() {
+            self.keys.insert(index, key)
+        }
+
+        // x.c(i+1) = z
+        self.children.insert(index + 1, new_node);
+
+        // x.n = x.n + 1
+        self.numbers_of_keys += 1;
     }
 }
 
@@ -22,7 +68,7 @@ impl std::fmt::Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Node {{ keys: {:?}, number_of_keys: {} }}",
+            "Node {{ keys: {:?}, numbers_of_keys: {} }}",
             self.keys, self.numbers_of_keys
         )
     }
