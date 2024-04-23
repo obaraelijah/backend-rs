@@ -241,6 +241,64 @@ impl Node {
             self.childrens[index].remove(&key)
         }
     }
+
+    pub fn fill(&mut self, index: usize) {
+        let is_prev = index == (self.childrens.len() - 1);
+
+        // TODO: Add test case and fix this:
+        // Currently, we only look at the prev sibling if we are the last
+        // child.
+        //
+        // This is not entirely correct because the actual implementation
+        // is to look at both immediate siblings to see if they have t
+        // keys. So there will be a case where the fill doesn't happen at all.
+        let siblings = if index == self.childrens.len() - 1 {
+            self.childrens[index - 1].as_mut()
+        } else {
+            self.childrens[index + 1].as_mut()
+        };
+
+        if siblings.numbers_of_keys >= MINIMUM_DEGREE {
+            // Get the last key from our parent
+            //
+            // It doesn't matter as we will then decide
+            // to push to our children end or insert in front
+            // depending of whether is a left or right child.
+            let k1 = self.keys.pop().unwrap();
+
+            if is_prev {
+                let k2 = siblings.keys.pop().unwrap();
+                siblings.numbers_of_keys -= 1;
+                if !siblings.is_leaf {
+                    let child = siblings.childrens.pop().unwrap();
+                    self.childrens[index].childrens.insert(0, child);
+                }
+
+                println!("Stealing {k2} last value from prev siblings and moving {k1} below as first value...");
+                self.childrens[index].keys.insert(0, k1);
+                self.childrens[index].numbers_of_keys += 1;
+                self.keys.push(k2);
+            } else {
+                let k2 = siblings.keys.remove(0);
+                siblings.numbers_of_keys -= 1;
+                if !siblings.is_leaf {
+                    let child = siblings.childrens.remove(0);
+                    self.childrens[index].childrens.push(child);
+                }
+
+                println!("Stealing {k2}, first value from next siblings and insert {k1} below as last value...");
+                self.childrens[index].keys.push(k1);
+                self.childrens[index].numbers_of_keys += 1;
+                self.keys.push(k2);
+            }
+        } else {
+            if index == self.childrens.len() - 1 {
+                self.merge_childs(index - 1);
+            } else {
+                self.merge_childs(index);
+            }
+        }
+    }
 }
 
 impl std::fmt::Debug for Node {
@@ -273,6 +331,20 @@ impl BTree {
             let mut node = Node::new(true);
             node.insert_non_full(key);
             self.root = Some(Box::new(node));
+        }
+    }
+
+    pub fn remove(&mut self, key: &u32) -> Option<u32> {
+        if let Some(node) = self.root.as_mut() {
+            let result = node.remove(key);
+
+            if node.keys.is_empty() {
+                self.root = Some(node.childrens.remove(0));
+            }
+
+            result
+        } else {
+            None
         }
     }
 }
