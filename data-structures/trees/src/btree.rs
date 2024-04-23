@@ -299,6 +299,40 @@ impl Node {
             }
         }
     }
+
+    pub fn remove(&mut self, key: &u32) -> Option<u32> {
+        println!("--- Remove {key} from {:?}", self.keys);
+        match self.keys.binary_search(key) {
+            Ok(index) => {
+                if self.is_leaf {
+                    let key = self.keys.remove(index);
+                    self.numbers_of_keys -= 1;
+                    Some(key)
+                } else {
+                    self.remove_from_internals(index)
+                }
+            }
+            Err(index) => {
+                println!("Didn't found key in current node, child index: {index}...");
+                if self.is_leaf {
+                    None
+                } else {
+                    println!("my children: {:?}", self.childrens);
+                    if self.childrens[index].numbers_of_keys == MINIMUM_DEGREE - 1 {
+                        println!("Child has less than t keys, fill it up...");
+                        self.fill(index);
+                    }
+
+                    if index < self.childrens.len() {
+                        self.childrens[index].remove(key)
+                    } else {
+                        // TODO: Add test case for this.
+                        self.childrens[index - 1].remove(key)
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl std::fmt::Debug for Node {
@@ -345,6 +379,42 @@ impl BTree {
             result
         } else {
             None
+        }
+    }
+
+    pub fn get(&self, key: &u32) -> Option<&u32> {
+        if let Some(node) = &self.root {
+            node.search(key)
+        } else {
+            None
+        }
+    }
+
+    pub fn print(&self) {
+        if let Some(node) = &self.root {
+            let mut queue = VecDeque::new();
+            queue.push_front(node);
+            let mut visited_child = 0;
+            let mut num_of_childs = 1;
+            let mut next_to_visit = 0;
+
+            while let Some(node) = queue.pop_back() {
+                print!(" {:?} ", node.keys);
+                // println!("{:?}: {:?}", node.keys, node.childrens);
+                visited_child += 1;
+
+                for c in &node.childrens {
+                    queue.push_front(c);
+                    next_to_visit += 1;
+                }
+
+                if num_of_childs == visited_child {
+                    println!("");
+                    visited_child = 0;
+                    num_of_childs = next_to_visit;
+                    next_to_visit = 0;
+                }
+            }
         }
     }
 }
