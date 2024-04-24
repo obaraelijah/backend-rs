@@ -1,4 +1,6 @@
+use std::collections::VecDeque;
 
+const DEBUG: bool = false;
 pub struct BPlusTree {
     root: Option<Node>,
     max_degree: usize,
@@ -129,6 +131,100 @@ impl Node {
         }
 
         min_key
+    }
+
+    pub fn remove(&mut self, key: &u32, max_degree: usize) -> Option<u32> {
+        // println!("--- remove {key} from {:?}", self);
+        let (index, result) = match self.keys.binary_search(key) {
+            Ok(index) => {
+                if self.is_leaf {
+                    let value = self.values.remove(index);
+                    self.keys.remove(index);
+                    (Some(index), Some(value))
+                } else {
+                    (
+                        Some(index + 1),
+                        self.remove_from_internals(index, max_degree),
+                    )
+                }
+            }
+            Err(index) => {
+                if self.is_leaf {
+                    (None, None)
+                } else {
+                    (Some(index), self.childrens[index].remove(key, max_degree))
+                }
+            }
+        };
+
+        if let Some(index) = index {
+            // println!("--- keys: {:?}, index: {index}", self.keys);
+            self.rebalance(index, max_degree);
+        }
+        result
+    }
+
+    pub fn remove_from_internals(&mut self, index: usize, max_degree: usize) -> Option<u32> {
+        if DEBUG {
+            println!("--- remove_from_internals");
+        }
+        let key = self.keys[index];
+        self.keys.remove(index);
+
+        if DEBUG {
+            println!(
+                "self: {:?}, child: {:?}, index: {index}",
+                self, self.childrens
+            );
+        }
+        let min_key = self.min_key(max_degree);
+        let child_key = self.childrens[index + 1].keys.len();
+        let result = self.childrens[index + 1].remove(&key, max_degree);
+
+        if child_key == min_key {
+            if self.childrens[index + 1].is_leaf {
+                // println!("Case 2b: {:?}", self.childrens[index + 1]);
+                self.fill_with_immediate_sibling(index, max_degree);
+            }
+        } else {
+            // println!("Case 2a: {:?}", self.childrens[index + 1]);
+            self.fill_with_inorder_successor(index);
+        };
+
+        // This mean that the actual remove happen at self children
+        // children. Hence, we want to pick an inorder successor to
+        // replace the key we just removed.
+        if self.childrens.len() > index + 1 && !self.childrens[index + 1].is_leaf {
+            // println!("Case 2c: {:?}", self.childrens);
+
+            if child_key == min_key {
+                self.fill_with_inorder_successor(index);
+            }
+        }
+
+        result
+    }
+
+    pub fn fill_with_immediate_sibling(&mut self, index: usize, max_degree: usize) {
+        if DEBUG {
+            println!("--- fill_with_immediate_sibling");
+        }
+        let min_key = self.min_key(max_degree);
+
+        if self.childrens[index].keys.len() > min_key {
+            let left_sibling = self.childrens.get_mut(index).unwrap();
+            let steal_key = left_sibling.keys.pop().unwrap();
+            let steal_value = left_sibling.values.pop().unwrap();
+            // println!("Steal {steal_key} from left sibling {:?}...", left_sibling);
+            self.keys.insert(index, steal_key);
+            self.childrens[index + 1].keys.insert(0, steal_key);
+            self.childrens[index + 1].values.insert(0, steal_value);
+        } else if self.childrens[index + 1].keys.len() > min_key {
+            println!("------------------- to handle");
+        } else {
+            // println!("Case 3 internal");
+            self.childrens.remove(index + 1);
+        }
     }
 }
 
