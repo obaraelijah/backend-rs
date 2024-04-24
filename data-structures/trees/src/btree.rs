@@ -418,3 +418,328 @@ impl BTree {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::BTree;
+
+    #[test]
+    fn basics() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+        tree.insert(5);
+        tree.insert(3);
+        tree.insert(10);
+        tree.insert(11);
+        tree.insert(14);
+        tree.insert(16);
+        tree.insert(17);
+        tree.insert(18);
+        tree.insert(19);
+        tree.insert(20);
+        tree.insert(21);
+        tree.insert(22);
+        tree.insert(23);
+        tree.insert(24);
+        tree.insert(25);
+        tree.insert(30);
+
+        assert_eq!(tree.get(&2), Some(&2));
+        assert_eq!(tree.get(&7), Some(&7));
+        assert_eq!(tree.get(&8), Some(&8));
+        assert_eq!(tree.get(&9), Some(&9));
+        assert_eq!(tree.get(&5), Some(&5));
+        assert_eq!(tree.get(&10), Some(&10));
+        assert_eq!(tree.get(&4), Some(&4));
+        assert_eq!(tree.get(&12), None);
+        assert_eq!(tree.get(&5), Some(&5));
+
+        tree.remove(&7);
+        // Previously, childrens linkage broke here.
+        tree.remove(&16);
+        tree.remove(&1);
+        tree.remove(&18);
+
+        // Fixed!
+        // tree.remove(&24);
+        // tree.print();
+        // tree.remove(&23);
+        // tree.print();
+
+        // Fixed!
+        // tree.remove(&6);
+        // tree.remove(&19);
+        // tree.print();
+
+        // Fixed!
+        // tree.remove(&14);
+        // tree.print();
+
+        // Fixed!
+        tree.remove(&21);
+        tree.print();
+    }
+
+    #[test]
+    fn merge_child_before_swapping_left_child_bigget_value() {
+        let mut tree = BTree::new();
+        tree.insert(10);
+        tree.insert(11);
+        tree.insert(14);
+        tree.insert(16);
+        tree.insert(17);
+        tree.insert(18);
+        tree.insert(19);
+        tree.insert(20);
+        tree.insert(21);
+        tree.insert(22);
+        tree.insert(23);
+        tree.insert(24);
+        tree.insert(25);
+        tree.insert(30);
+        tree.insert(1);
+        tree.insert(2);
+        tree.insert(15);
+        tree.insert(13);
+        tree.insert(12);
+        tree.insert(26);
+        tree.insert(27);
+        tree.insert(28);
+        tree.insert(29);
+
+        tree.print();
+        assert_eq!(tree.remove(&16), Some(16));
+        tree.print();
+    }
+
+    #[test]
+    fn merge_child_before_swapping_right_child_smallest_value() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+        tree.insert(5);
+        tree.insert(3);
+        tree.insert(10);
+        tree.insert(11);
+        tree.insert(14);
+        tree.insert(16);
+        tree.insert(17);
+        tree.insert(18);
+        tree.insert(19);
+        tree.insert(20);
+        tree.insert(21);
+        tree.insert(22);
+        tree.insert(23);
+        tree.insert(24);
+        tree.insert(25);
+        tree.insert(30);
+
+        tree.print();
+        assert_eq!(tree.remove(&18), Some(18));
+        tree.print();
+
+        // Steal from right, merge, and remove
+        assert_eq!(tree.remove(&16), Some(16));
+        tree.print();
+    }
+
+    #[test]
+    fn case_3a() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+        tree.insert(5);
+        tree.insert(3);
+        tree.insert(10);
+        tree.insert(11);
+        tree.insert(14);
+        tree.insert(16);
+        tree.insert(17);
+        tree.insert(18);
+        tree.insert(19);
+        tree.insert(20);
+        tree.insert(21);
+        tree.insert(22);
+        tree.insert(23);
+        tree.insert(24);
+        tree.insert(25);
+        tree.insert(30);
+        tree.insert(31);
+        tree.insert(32);
+        tree.insert(33);
+        tree.insert(34);
+        tree.insert(35);
+
+        assert_eq!(tree.remove(&7), Some(7));
+    }
+
+    #[test]
+    fn case_3b() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+        tree.insert(5);
+        tree.insert(3);
+        tree.insert(10);
+        tree.insert(11);
+        tree.insert(14);
+        tree.insert(16);
+        tree.insert(17);
+        tree.insert(18);
+        tree.insert(19);
+        tree.insert(20);
+        tree.insert(21);
+        tree.insert(22);
+        tree.insert(23);
+        tree.insert(24);
+        tree.insert(25);
+        tree.insert(30);
+        tree.insert(31);
+        tree.insert(32);
+        tree.insert(33);
+        tree.insert(34);
+        tree.insert(35);
+
+        assert_eq!(tree.remove(&18), Some(18));
+    }
+
+    #[test]
+    fn delete_key_on_root_node_with_internal_nodes_case_a() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+        tree.insert(5);
+        tree.insert(3);
+        tree.insert(10);
+        tree.insert(11);
+        tree.insert(14);
+
+        assert_eq!(tree.remove(&7), Some(7));
+    }
+
+    #[test]
+    fn delete_key_on_root_node_with_internal_nodes_case_b() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+        tree.insert(5);
+        tree.insert(3);
+        tree.insert(10);
+        tree.insert(11);
+        tree.insert(14);
+        tree.insert(16);
+        tree.insert(17);
+
+        assert_eq!(tree.remove(&7), Some(7));
+    }
+
+    #[test]
+    fn delete_key_on_root_node() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+
+        assert_eq!(tree.remove(&7), Some(7));
+        assert_eq!(tree.remove(&8), Some(8));
+        assert_eq!(tree.remove(&1), None);
+        assert_eq!(tree.remove(&8), None);
+    }
+
+    #[test]
+    fn delete_leaf_on_two_leaf_node() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+
+        assert_eq!(tree.remove(&4), Some(4));
+        assert_eq!(tree.remove(&9), Some(9));
+        assert_eq!(tree.remove(&5), None);
+    }
+
+    #[test]
+    fn delete_key_on_internal_node_case_a() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+
+        // Actual case a
+        assert_eq!(tree.remove(&4), Some(4));
+    }
+
+    #[test]
+    fn delete_key_on_internal_node_case_b() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+        tree.insert(5);
+
+        assert_eq!(tree.remove(&2), Some(2));
+
+        // Actual case b
+        assert_eq!(tree.remove(&4), Some(4));
+    }
+
+    #[test]
+    fn delete_key_on_internal_node_case_c() {
+        let mut tree = BTree::new();
+        tree.insert(2);
+        tree.insert(7);
+        tree.insert(8);
+        tree.insert(9);
+        tree.insert(4);
+        tree.insert(6);
+        tree.insert(1);
+        tree.insert(5);
+
+        assert_eq!(tree.remove(&2), Some(2));
+        assert_eq!(tree.remove(&5), Some(5));
+
+        // Actual case c
+        assert_eq!(tree.remove(&4), Some(4));
+    }
+}
